@@ -29,7 +29,7 @@ fps = int(video_capture.get(5))
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 output = cv2.VideoWriter('output.avi', fourcc, fps, dimensions)
 
-# Load the overlay images. Raise an exception of none are found.
+# Load the overlay images. Raise an exception if none are found.
 images = [cv2.imread(os.path.join('media', f), -1) for f in os.listdir('media')
           if f.endswith('.png')]
 if len(images) == 0:
