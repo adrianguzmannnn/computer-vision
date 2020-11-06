@@ -1,22 +1,13 @@
-import cv2
 import os
 import random
+import cv2
 
 # Load the frontal face classifier.
 classifier = r'.\classifiers\haarcascade_frontalface_alt.xml'
-if not os.path.isfile(classifier):
-    error = 'File `{}` does not exist. Refer to the GitHub page for ' \
-            'requirements.'.format(classifier)
-    raise IOError(error)
 face_cascade = cv2.CascadeClassifier(classifier)
 
-# Begin a video capture. The index of `0` denotes that the default camera
-# is selected.
+# Begin a video capture.
 video_capture = cv2.VideoCapture(0)
-
-# Ensure that a camera was found. Otherwise, raise an exception.
-if not video_capture:
-    raise IOError('A default camera was not identified.')
 
 # Retrieve the camera's specifications.
 frame_width = int(video_capture.get(3))
@@ -29,53 +20,31 @@ fps = int(video_capture.get(5))
 fourcc = cv2.VideoWriter_fourcc(*'DIVX')
 output = cv2.VideoWriter('output.avi', fourcc, fps, dimensions)
 
-# Load the overlay images. Raise an exception of none are found.
+# Load the overlay images.
 images = [cv2.imread(os.path.join('media', f), -1) for f in os.listdir('media')
           if f.endswith('.png')]
-if len(images) == 0:
-    raise IOError('No PNG files were found.')
 
 original_masking = [image[:, :, 3] for image in images]
 
-# Generate the inverted masking. `cv2.bitwise_not()` inverts every bit of
-# an array.
 inverted_masking = [cv2.bitwise_not(mask) for mask in original_masking]
 
-# Unless the user has specified to terminate the recording, continue it
-# using this while loop.
 while True:
 
-    # Begin reading the video capture.
     ret, frame = video_capture.read()
 
-    # Convert the video feed to gray-scale.
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    # Use a haar-cascade to detect faces in the feed. The arguments as
-    # described as:
-    # a. `scaleFactor` specifies how much the image size is reduced at each
-    #    image scale.
-    # b. `minNeighbors` defines how many neighbors each candidate
-    #    rectangle should
-    #    have to retain it.
-    # c. `minSize` specifies the minimum pixel area to be considered for
-    #    detection.
-    faces = face_cascade.detectMultiScale(
-            gray,
-            scaleFactor=1.1,
-            minNeighbors=10,
-            minSize=(30, 30)
-        )
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, 
+                                          minNeighbors=10, minSize=(30, 30))
 
     # Iterate through each face found.
     for (x, y, w, h) in faces:
 
-        # Randomly select an index depending on the number of PNGs available
-        # to overlay.
-        index = random.randint(0, len(images)-1)
+        # Select an index depending on the number of PNGs available.
+        index = random.randint(0, len(images) - 1)
 
         # Define the overlay pixel area.
-        overlay_width = int(w*2.4)
+        overlay_width = int(w * 2.4)
         overlay_height = overlay_width
         overlay_dimensions = (overlay_width, overlay_height)
 
@@ -88,10 +57,10 @@ while True:
                                    interpolation=cv2.INTER_AREA)
 
         # Define the coordinates for the overlay.
-        x1 = int(x-(overlay_width*0.325))
-        x2 = x1+overlay_width
-        y1 = int(y-(overlay_height*0.35))
-        y2 = y1+overlay_height
+        x1 = int(x - (overlay_width * 0.325))
+        x2 = x1 + overlay_width
+        y1 = int(y - (overlay_height * 0.35))
+        y2 = y1 + overlay_height
 
         # Generate the overlay.
         try:
@@ -107,6 +76,7 @@ while True:
             frame[y1:y2, x1:x2] = merge
             output.write(frame)
         except:
+            # Wrap around a cv2 bug.
             pass
 
     # Initialize a window and set it as full-screen.
@@ -114,14 +84,12 @@ while True:
     cv2.setWindowProperty('Video', cv2.WND_PROP_FULLSCREEN,
                           cv2.WINDOW_FULLSCREEN)
 
-    # Show the initialized window.
     cv2.imshow('Video', frame)
 
     # Press 'Q' to end the session.
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
-# Terminate the video live capture and recording.
 output.release()
 video_capture.release()
 cv2.destroyAllWindows()
